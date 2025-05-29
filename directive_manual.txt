@@ -1,0 +1,182 @@
+Py++ Compiler Directives Manual (v0.1)
+
+This manual outlines a set of meta-directives for the hypothetical Py++ language, intended
+to enhance code expressiveness, metaprogramming capabilities, and creative experimentation.
+These directives operate at compile-time, transforming or selectively including code before execution.
+
+==========================================================
+@repeat(n)
+
+Description:
+Repeats the decorated code block n times at compile-time.
+Syntax:
+
+@repeat(3)
+    print("Hello")
+
+Example Output:
+print("Hello")
+print("Hello")
+print("Hello")
+
+Behavior:
+Expands the following expression or block n times in place. Useless for negative
+numbers, for n=0 @repeat equals to @invisible.
+
+==========================================================
+@mirror
+
+Description:
+Generates a mirrored (reversed) version of the given statement.
+Syntax:
+
+@mirror
+    print("abc")
+
+Example Output:
+print("cba")
+
+Behavior:
+For strings: creates a second statement with the reversed string. For lists of
+literals: reverses the structure where semantically appropriate.
+
+==========================================================
+@random([...])
+
+Description:
+Selects one statement from the provided list at compile-time, inserting it in place.
+Syntax:
+
+@random(["print('A')", "print('B')", "print('C')"])
+
+Example Output (one possibility):
+print('B')
+
+Behavior:
+Evaluates the list during compilation.
+Selects one entry randomly and inserts it as code.
+Useful for fuzz testing, randomized examples, or behavior variation.
+
+==========================================================
+@invisible
+
+Description:
+Hides it from introspection tools and compiler output.
+Syntax:
+
+@invisible
+    _internal_boot()
+
+Example Output:
+(None visible)
+
+==========================================================
+@debug_only
+
+Description:
+Includes the code only when the compiler is in debug mode.
+Syntax:
+
+@debug_only
+    print("Debug: x =", x)
+
+Behavior:
+The directive conditionally includes the code block based on a compile-time flag.
+When DEBUG is disabled, the block is completely omitted.
+
+----------------------------------------------------------
+
+Conditional compilation
+Conditional compilation directives in Py++ allow for selective inclusion of code based
+on compile-time variables. These directives resemble traditional constructs like #ifdef
+or #if in C-like languages, but adopt a more Pythonic, declarative form.
+
+==========================================================
+@if <expression>
+
+Description:
+Starts a conditional compilation block. The code following this directive will be included
+in the compiled output only if the given expression evaluates to True at compile time.
+
+Syntax:
+
+@if DEBUG
+    print("Debug mode enabled")
+
+Behavior:
+The expression must be resolvable during compilation.
+If DEBUG is True, the block is included; otherwise, it is skipped.
+The directive must be followed by @endif, optionally with @elif and @else.
+
+==========================================================
+@elif <expression>
+
+Description:
+Defines an alternative conditional branch if the previous @if or @elif conditions were not met.
+
+Syntax:
+
+@elif PLATFORM == "linux"
+    print("Linux detected")
+
+Behavior:
+Acts like elif in runtime Python, but evaluated at compile time.
+Evaluated only if no previous branch has matched.
+Accepts the same types of expressions as @if.
+
+==========================================================
+@else
+
+Description:
+Defines a fallback branch to execute if none of the previous @if or @elif conditions were satisfied.
+
+Syntax:
+
+@else
+    print("Fallback case")
+
+Behavior:
+Must be the last conditional branch before @endif.
+Takes no arguments.
+Included only if all above conditions evaluated to False.
+
+==========================================================
+@endif
+
+Description:
+Marks the end of a conditional compilation block.
+
+Syntax:
+
+@endif
+
+Behavior:
+Required to properly close the block started by @if.
+Without it, the compiler should throw an error.
+Helps maintain clear, scannable structure for nested or complex conditions.
+
+----------------------------------------------------------
+
+File Inclusion
+This section describes the @include directive, which allows source code from external files
+to be inserted at compile time. It provides a modular way to structure large programs, share
+reusable code, and reduce duplication across projects.
+
+==========================================================
+@include "filename"
+
+Description:
+Includes and inlines the contents of an external Py++ source file at the point of use during compilation.
+
+Syntax:
+
+@include "math_utils.pyp"
+
+Behavior:
+
+The file path is relative to the current file or project root, unless otherwise configured.
+The contents of the included file are parsed and inserted into the compilation stream as if they were typed in place.
+Recursive inclusion is allowed but must be cycle-safe. The compiler should detect and prevent infinite loops caused by circular includes.
+Included files can themselves contain other directives (@repeat, @debug_only, @if, etc.).
+
+----------------------------------------------------------
