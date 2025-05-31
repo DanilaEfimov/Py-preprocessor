@@ -163,14 +163,14 @@ to be inserted at compile time. It provides a modular way to structure large pro
 reusable code, and reduce duplication across projects.
 
 ==========================================================
-@include "filename"
+@include filename
 
 Description:
 Includes and inlines the contents of an external Py++ source file at the point of use during compilation.
 
 Syntax:
 
-@include "math_utils.pyp"
+@include math_utils.pyp
 
 Behavior:
 

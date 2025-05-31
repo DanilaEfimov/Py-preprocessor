@@ -6,13 +6,15 @@
     -v @verbose output
 """
 
+from common import MACRO_HANDLERS
+
 """ vvv CLI interface flags and other definitions vvv """
 VOID_FLAGS = {"-v"}
 FLAGS_WITH_VALUES = {"-i", "-o", "-s"}
 
 
-def is_value(pattern : str) -> bool:
-    return not is_flag(pattern)
+def is_value(pattern: str) -> bool:
+    return pattern is not None and not is_flag(pattern)
 
 
 def is_flag(pattern : str) -> bool:
@@ -26,7 +28,7 @@ def is_void_flag(flag: str) -> bool:
 def parse_main_input(argv) -> dict:
     config = {}     # [arg, val] pairs dict
     argc = len(argv)
-    i = 1       # by default, argv[0] is assumed preprocessor script file (e.g. main.py)
+    i = 0
     while i < argc:
         arg = argv[i]
 
@@ -67,3 +69,8 @@ def init_symbol_table(lines) -> dict:
         symbol, value = map(str.split, line.split('=', 1))
         symbols[symbol] = value
     return symbols
+
+""" vvv preprocessor's parse utils vvv """
+
+def parse_include_parameter(directive: str):
+    return directive.replace(MACRO_HANDLERS["include"], '').strip()
