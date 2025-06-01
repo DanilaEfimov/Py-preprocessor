@@ -7,6 +7,12 @@ from common import ERROR_MANUALS
 norm_command = ["-i", "input.txt", "-o", "output", "-v", "-s", "symbols"]
 
 def main():
+    """
+    if len(sys.argv) == 1:
+        print("\nexit code : -1")
+        print(ERROR_MANUALS[-1]["msg"])
+        print(ERROR_MANUALS[-1]["hint"])
+        sys.exit(-1)"""
     config = parser.parse_main_input(sys.argv)
     state = preprocess.is_valid_config(config)
     if state != 0:

@@ -66,11 +66,64 @@ def init_symbol_table(lines) -> dict:
         line = line.strip()
         if not line or '=' not in line:
             continue    # pass empty lines
-        symbol, value = map(str.split, line.split('=', 1))
+        symbol, value = map(str.strip, line.split('=', 1))
         symbols[symbol] = value
     return symbols
 
 """ vvv preprocessor's parse utils vvv """
+
+def parse_conditional_blocks(path: str) -> list[str]:
+    ...
+
+
+def is_directive(line: str) -> bool:
+    return line in MACRO_HANDLERS
+
+
+def parse_define_directive(line: str) -> tuple[int, str, str, str]:
+    line = line.strip()
+    define = MACRO_HANDLERS["define"]
+    undef = MACRO_HANDLERS["undef"]
+
+    if line.startswith(define):
+        parts = line.split(maxsplit=2)
+        if len(parts) < 2:
+            return 200, define, "", ""
+        symbol = parts[1]
+        value = parts[2] if len(parts) > 2 else ""
+        return 0, define, symbol, value
+
+    elif line.startswith(undef):
+        parts = line.split(maxsplit=2)
+        if len(parts) < 2:
+            return 200, undef, "", ""
+        symbol = parts[1]
+        return 0, undef, symbol, ""
+
+    else:
+        return 200, "", "", ""
+
+
+def is_define_directive(directive : str) -> bool:
+    return directive in {
+        MACRO_HANDLERS["define"],
+        MACRO_HANDLERS["undef"]
+    }
+
+
+def is_conditional_directive(directive: str) -> bool:
+    return directive in {
+        MACRO_HANDLERS["if"],
+        MACRO_HANDLERS["else"],
+        MACRO_HANDLERS["elif"],
+        MACRO_HANDLERS["endif"],
+    }
+
+
+def directive_in_line(line: str) -> bool:
+    stripped = line.strip().split(maxsplit=1)
+    return stripped and stripped[0] in MACRO_HANDLERS.values()
+
 
 def parse_include_parameter(directive: str):
     return directive.replace(MACRO_HANDLERS["include"], '').strip()

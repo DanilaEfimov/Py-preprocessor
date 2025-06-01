@@ -1,4 +1,5 @@
-from parser import is_void_flag, is_value, parse_include_parameter, VOID_FLAGS
+import re
+from parser import is_void_flag, is_value, parse_include_parameter, directive_in_line, parse_define_directive, is_define_directive, is_conditional_directive, VOID_FLAGS
 from common import ERROR_MANUALS, MACRO_HANDLERS
 
 
@@ -38,12 +39,39 @@ def _repeat(lines: list[str]) -> list[str]:
     ...
 
 
-def define_macros(path: str) -> int:
-    ...
+def expand_macros(path: str, symbols: dict) -> int:
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            lines = f.readlines()
+
+        expanded_lines = []
+        for line in lines:
+            for macro, value in symbols.items():
+                line = re.sub(rf'\b{re.escape(macro)}\b', value, line)
+            expanded_lines.append(line)
+
+        with open(path, "w", encoding="utf-8") as f:
+            f.writelines(expanded_lines)
+        return 0
+
+    except OSError:
+        return 1
 
 
-def conditional_compile(path: str) -> int:
-    ...
+def conditional_compile(path: str, symbols: dict, blocks: list[str]) -> int:
+    _define = MACRO_HANDLERS["define"]
+    _undef = MACRO_HANDLERS["undef"]
+    _if = MACRO_HANDLERS["if"]
+    _else = MACRO_HANDLERS["else"]
+    _elif = MACRO_HANDLERS["elif"]
+    _endif = MACRO_HANDLERS["endif"]
+
+    try:
+        ...
+        return 0
+    except OSError:
+        return 1  # file error
+
 
 
 def delete_comments(path: str) -> int:
