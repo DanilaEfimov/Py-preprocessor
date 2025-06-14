@@ -26,7 +26,7 @@ ERROR_MANUALS = {
     103 : {
         "msg": "failed to open file directed as @include parameter",
         "hint": "Check out local path. It have to be relative ./preprocessor\n"
-                "also path have not contains \"@include\"\n"
+                "also path have not contains '@include'\n"
                 "or file not exist"
     },
     104 : {
@@ -35,7 +35,7 @@ ERROR_MANUALS = {
     },
     200 : {
         "msg" : "invalid define directive's syntax.",
-        "hint" : "for @define : @define @arg@ (arg is name of macro)\n"
+        "hint" : "for @define : @define 'name' 'value'\n"
                  "for @undef - same"
     },
     201 : {
@@ -43,8 +43,13 @@ ERROR_MANUALS = {
         "hint" : "check macro name and included files"
     },
     202 : {
-        "mag" : "undefined directive",
+        "msg" : "undefined directive",
         "hint" : "check directives in target and included files"
+    },
+    203 : {
+        "msg" : "missed directive of the end of the conditional block",
+        "hint" : "for every open conditional block must be placed @endif directive\n"
+                 "try to find non closed block in included files"
     }
 }
 
@@ -52,7 +57,8 @@ MACRO_HANDLERS = {
     "include" :     "@include",
     "define" :      "@define",
     "undef" :       "@undef",
-    "if" :          "@if",
+    "ifdef" :       "@ifdef",
+    "ifndef" :      "@ifndef",
     "else" :        "@else",
     "elif" :        "@elif",
     "endif" :       "@endif",

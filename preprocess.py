@@ -58,20 +58,65 @@ def expand_macros(path: str, symbols: dict) -> int:
         return 1
 
 
-def conditional_compile(path: str, symbols: dict, blocks: list[str]) -> int:
-    _define = MACRO_HANDLERS["define"]
-    _undef = MACRO_HANDLERS["undef"]
-    _if = MACRO_HANDLERS["if"]
-    _else = MACRO_HANDLERS["else"]
-    _elif = MACRO_HANDLERS["elif"]
-    _endif = MACRO_HANDLERS["endif"]
+def replace_conditional_block(lines: list[str], symbols: dict) -> list[str]:
+    ...
 
+
+def conditional_compile(lines: list[str], symbols: dict) -> (list[str], dict):
+    _define =   MACRO_HANDLERS["define"]
+    _undef =    MACRO_HANDLERS["undef"]
+    _ifdef =    MACRO_HANDLERS["ifdef"]
+    _ifndef =   MACRO_HANDLERS["ifndef"]
+    _else =     MACRO_HANDLERS["else"]
+    _elif =     MACRO_HANDLERS["elif"]
+    _endif =    MACRO_HANDLERS["endif"]
+
+    # TODO: debug conditional compiling stuff and select functional blocks for refactoring
     try:
-        ...
+        i = 0
+        while i < (len(lines)):
+            line = lines[i].strip()
+            words = line.split(' ')
+            count = len(words)
+            if count > 0:
+# conditional checking
+                if (words[0] == _ifdef or words[0] == _ifndef) and count == 2:
+                    opening = int(i)
+                    i += 1  # next line
+                    block = [line]
+                    while line != _endif and i < len(lines):
+                        line = lines[i].strip()
+                        block.append(line)
+                        i += 1  # next line
+                    if i == len(lines):
+                        raise 203
+                    closing = int(i)
+                    block = replace_conditional_block(block, symbols)
+                    lines[opening:closing], symbols = conditional_compile(block, symbols)
+# define checking
+                elif words[0] == _define:
+                    if count == 3:
+                        symbol = words[1]
+                        value = words[2]
+                        symbols[symbol] = str(value)
+                    else:
+                        raise 200
+# undef checking
+                elif words[0] == _undef:
+                    if count == 2:
+                        symbol = words[1]
+                        if symbol in symbols:
+                            symbols.pop(symbol)
+                        else:
+                            raise 201
+                    else:
+                        raise 200
+# undefined directive checking
+                elif words[0][0] == '@':    # directive pattern
+                    raise 202
         return 0
-    except OSError:
-        return 1  # file error
-
+    except int as code:
+        return code  # error
 
 
 def delete_comments(path: str) -> int:
@@ -152,14 +197,14 @@ def preprocess(path: str) -> int:
     code = include_files(path)
     if code != 0:
         return code
+
+    code = conditional_compile(path, )
+    if code != 0:
+        return code
+
     return 0    # <-- breaker for testing
     code = delete_comments(path)
     if code != 0:
         return code
 
-    code = define_macros(path)
-    if code != 0:
-        return code
-
-    code = conditional_compile(path)
-    return code
+    return 0
