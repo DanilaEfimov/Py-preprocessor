@@ -1,0 +1,11 @@
+@define A 1
+@undef A
+@define B Balls
+@ifdef A
+    conditional compiled text
+@elif B
+    @define A 2
+    @ifdef A
+        other text
+    @endif
+@endif

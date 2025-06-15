@@ -47,9 +47,13 @@ ERROR_MANUALS = {
         "hint" : "check directives in target and included files"
     },
     203 : {
-        "msg" : "missed directive of the end of the conditional block",
-        "hint" : "for every open conditional block must be placed @endif directive\n"
-                 "try to find non closed block in included files"
+        "msg" : "missed directive of the end of the conditional block or branch",
+        "hint" : "for every open conditional block must be ended directive\n"
+                 "end conditional directives: @elif @endif @else ..."
+    },
+    204 : {
+        "msg" : "cannot parse conditional block",
+        "hint" : "check directives syntax in manuals"
     }
 }
 

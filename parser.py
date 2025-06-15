@@ -59,8 +59,14 @@ def parse_main_input(argv) -> dict:
     return config
 
 
-def init_symbol_table(lines) -> dict:
+def init_symbol_table(path: str) -> dict:
     """ symbol table file parser """
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            lines = f.readlines()
+    except OSError:
+        return {}
+
     symbols = {}    # macros
     for line in lines:
         line = line.strip()

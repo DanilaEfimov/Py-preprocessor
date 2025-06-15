@@ -1,4 +1,6 @@
 import re
+
+import parser
 from parser import is_void_flag, is_value, parse_include_parameter, directive_in_line, parse_define_directive, is_define_directive, is_conditional_directive, VOID_FLAGS
 from common import ERROR_MANUALS, MACRO_HANDLERS
 
@@ -58,66 +60,33 @@ def expand_macros(path: str, symbols: dict) -> int:
         return 1
 
 
-def replace_conditional_block(lines: list[str], symbols: dict) -> list[str]:
+def get_block_bounds(lines: list[str]) -> tuple[int, int]:
+    # find ONLY open directive (not end before start)
+    # find last closing directive in this scope
+    # return numbers of start and end
     ...
 
 
-def conditional_compile(lines: list[str], symbols: dict) -> (list[str], dict):
-    _define =   MACRO_HANDLERS["define"]
-    _undef =    MACRO_HANDLERS["undef"]
-    _ifdef =    MACRO_HANDLERS["ifdef"]
-    _ifndef =   MACRO_HANDLERS["ifndef"]
-    _else =     MACRO_HANDLERS["else"]
-    _elif =     MACRO_HANDLERS["elif"]
-    _endif =    MACRO_HANDLERS["endif"]
+def solve_block(lines: list[str]) -> list[str]:
+    # split conditional branches
+    # select condition instructions
+    # find correct condition
+    # return branch
+    ...
 
-    # TODO: debug conditional compiling stuff and select functional blocks for refactoring
-    try:
-        i = 0
-        while i < (len(lines)):
-            line = lines[i].strip()
-            words = line.split(' ')
-            count = len(words)
-            if count > 0:
-# conditional checking
-                if (words[0] == _ifdef or words[0] == _ifndef) and count == 2:
-                    opening = int(i)
-                    i += 1  # next line
-                    block = [line]
-                    while line != _endif and i < len(lines):
-                        line = lines[i].strip()
-                        block.append(line)
-                        i += 1  # next line
-                    if i == len(lines):
-                        raise 203
-                    closing = int(i)
-                    block = replace_conditional_block(block, symbols)
-                    lines[opening:closing], symbols = conditional_compile(block, symbols)
-# define checking
-                elif words[0] == _define:
-                    if count == 3:
-                        symbol = words[1]
-                        value = words[2]
-                        symbols[symbol] = str(value)
-                    else:
-                        raise 200
-# undef checking
-                elif words[0] == _undef:
-                    if count == 2:
-                        symbol = words[1]
-                        if symbol in symbols:
-                            symbols.pop(symbol)
-                        else:
-                            raise 201
-                    else:
-                        raise 200
-# undefined directive checking
-                elif words[0][0] == '@':    # directive pattern
-                    raise 202
-        return 0
-    except int as code:
-        return code  # error
 
+def conditional_compile(lines: list[str], symbols: dict) -> list[str]:
+    have_conditional_blocks = True
+    while have_conditional_blocks:
+        start, end = get_block_bounds(lines)    # find the boundaries of a conditional block
+        if start == end:
+            have_conditional_blocks = False
+
+        branch = solve_block(lines[start:end])  # solve block (returns correct branch)
+        lines[start:end] = branch               # replace all block to solution
+    return lines
+#TODO: вместо реккурсивного или итеративного решения со стеком можно просто
+#TODO: смещать счетчил строк на начало выполненной ветви
 
 def delete_comments(path: str) -> int:
     ...
@@ -151,14 +120,14 @@ def collect_includes(path: str, chain: list[str]) -> tuple[int, list[str]]:
         return 103, [str(e)]
 
 
-def include_files(path: str) -> int:
+def include_files(_input: str, _output: str) -> int:
     try:
-        with open(path, "r", encoding="utf-8") as f:
-            code, lines = collect_includes(path, [])
+        with open(_input, "r", encoding="utf-8") as f:
+            code, lines = collect_includes(_input, [])
             if code != 0:
                 return code
 
-        with open(path, "w", encoding="utf-8") as f:
+        with open(_output, "w", encoding="utf-8") as f:
             f.writelines(lines)
         return 0
 
@@ -193,18 +162,24 @@ def is_valid_config(config: dict) -> int:
     return 0
 
 
-def preprocess(path: str) -> int:
-    code = include_files(path)
+def preprocess(config: dict) -> int:
+    # noexcept(false)
+
+    _input = config["-i"]
+    _output = config["-o"]
+    _symbol_table = config["-s"]
+
+    code = include_files(_input, _output)
     if code != 0:
         return code
 
-    code = conditional_compile(path, )
-    if code != 0:
-        return code
+    symbols = parser.init_symbol_table(_symbol_table)
+    with open(_output, "r", encoding="utf-8") as f:
+        lines = f.readlines()
+        lines = conditional_compile(lines, symbols)
+        if code != 0:
+            return code
+    with open(_output, "w", encoding="utf-8") as f:
+        f.writelines(lines)
 
     return 0    # <-- breaker for testing
-    code = delete_comments(path)
-    if code != 0:
-        return code
-
-    return 0
