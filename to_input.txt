@@ -1,0 +1,12 @@
+this text was inputed
+by pseudo python directive
+@define C 123
+@ifdef C
+C was defined (in included file)
+@endif
+@include output.txt
+КОНФЕТЫ
+МОРОЖЕНЫЕ
+СМУРФИК
+@debug_only
+DEBUG

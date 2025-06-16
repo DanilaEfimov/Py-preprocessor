@@ -1,44 +1,82 @@
 import re
 
-import parser
-from parser import is_void_flag, is_value, parse_include_parameter, directive_in_line, parse_define_directive, is_define_directive, is_conditional_directive, VOID_FLAGS
+from parser import is_void_flag, is_value, parse_include_parameter, is_define_directive, is_conditional_directive, init_symbol_table, VOID_FLAGS
 from common import ERROR_MANUALS, MACRO_HANDLERS
+from custom_directives import _debug_only, _mirror, _random, _repeat, _invisible
 
 
-def _endif(lines: list[str]) -> list[str]:
-    ...
+def is_directive(line: str) -> bool:
+    return line in MACRO_HANDLERS.values()
 
 
-def _else(lines: list[str]) -> list[str]:
-    ...
+def is_opening_of_block(line: str) -> bool:
+    return line in {
+        MACRO_HANDLERS["ifdef"],
+        MACRO_HANDLERS["ifndef"]
+    }
 
 
-def _elif(lines: list[str]) -> list[str]:
-    ...
+def is_branch_terminator(line: str) -> bool:
+    return line in {
+        MACRO_HANDLERS["endif"],
+        MACRO_HANDLERS["elif"],
+        MACRO_HANDLERS["else"]
+    }
 
 
-def _if(lines: list[str]) -> list[str]:
-    ...
+def is_defined_symbol(symbol: str, symbols: dict) -> bool:
+    return symbol in symbols
 
 
-def _debug_only(lines: list[str]) -> list[str]:
-    ...
+def is_open_block_directive(line: str) -> bool:
+    return line in {
+        MACRO_HANDLERS["ifdef"],
+        MACRO_HANDLERS["ifndef"]
+    }
 
 
-def _invisible(lines: list[str]) -> list[str]:
-    ...
+
+def is_define_directive(line: str) -> bool:
+    return line in {
+        MACRO_HANDLERS["define"],
+        MACRO_HANDLERS["undef"]
+    }
 
 
-def _random(lines: list[str]) -> list[str]:
-    ...
+def solve_condition_directive(directive: str, symbols: dict) -> bool:
+    words = directive.strip().split(' ')
+    if words[0] == MACRO_HANDLERS["ifdef"] or words[0] == MACRO_HANDLERS["elif"]:
+        if len(words) < 2:
+            raise 200
+        symbol = words[1]
+        return is_defined_symbol(symbol, symbols)
+
+    elif words[0] == MACRO_HANDLERS["ifndef"]:
+        if len(words) < 2:
+            raise 200
+        symbol = words[1]
+        return not is_defined_symbol(symbol, symbols)
+
+    elif words[0] == MACRO_HANDLERS["else"]:
+        return True
 
 
-def _mirror(lines: list[str]) -> list[str]:
-    ...
-
-
-def _repeat(lines: list[str]) -> list[str]:
-    ...
+def solve_define_macros(directive: str, symbols: dict) -> None:
+    words = directive.strip().split(' ')
+    if words[0] == MACRO_HANDLERS["define"]:
+        if len(words) < 3:
+            raise 200
+        var = words[1]
+        val = words[2]
+        symbols[var] = val
+    elif words[0] == MACRO_HANDLERS["undef"]:
+        if len(words) < 2:
+            raise 200   # invalid syntax
+        symbol = words[1]
+        if is_defined_symbol(symbol, symbols):
+            symbols.pop(symbol)
+        else:
+            raise 201   # undefined symbol under cursor
 
 
 def expand_macros(path: str, symbols: dict) -> int:
@@ -58,38 +96,171 @@ def expand_macros(path: str, symbols: dict) -> int:
 
     except OSError:
         return 1
+    except int as code:
+        return code
+
+
+def read_macros_defines(lines: list[str], symbols: dict) -> None:
+    for line in lines:
+        words = line.strip().split(' ')
+        if is_define_directive(words[0]):
+            solve_define_macros(line, symbols)
+
+
+def get_conditional_branch(lines: list[str]) -> list[str]:
+    end = 0
+    flag = False
+    staples = 1
+    for i in range(1,len(lines)):
+        line = lines[i].strip()
+        words = line.split(' ')
+        if is_branch_terminator(words[0]):
+            staples -= 1
+            if staples == 0:
+                end = i
+                flag = True
+                break
+        elif is_open_block_directive(words[0]):
+            staples += 1
+
+    if not flag:
+        raise 203
+
+    return lines[1:end]
 
 
 def get_block_bounds(lines: list[str]) -> tuple[int, int]:
     # find ONLY open directive (not end before start)
     # find last closing directive in this scope
     # return numbers of start and end
-    ...
+    start, end = 0, 0
+    flag = False
+    for i in range(len(lines)):
+        line = lines[i].strip()
+        words = line.split(' ')
+        if is_open_block_directive(words[0]):
+            start = i
+            flag = True
+            break
+        elif is_branch_terminator(words[0]):
+            raise 204
+
+    if not flag:
+        return 0, 0
+
+    staples = 1
+    for i in range(start + 1,len(lines)):
+        line = lines[i].strip()
+        words = line.split(' ')
+        if is_open_block_directive(words[0]):
+            staples += 1
+        elif words[0] == MACRO_HANDLERS["endif"]:
+            staples -= 1
+            if staples == 0:
+                end = i
+                break
+
+    if end == 0:
+        raise 203
+
+    return start, end
 
 
-def solve_block(lines: list[str]) -> list[str]:
+def solve_block(lines: list[str], symbols: dict) -> list[str]:
     # split conditional branches
     # select condition instructions
     # find correct condition
     # return branch
-    ...
+    for i in range(len(lines)):
+        line = lines[i].strip()
+        words = line.split(' ')
+        if is_conditional_directive(words[0]):
+            solved = solve_condition_directive(line, symbols)
+            if solved:
+                remains = lines[i:]
+                branch = get_conditional_branch(remains)
+                return branch
+
+    return []
 
 
-def conditional_compile(lines: list[str], symbols: dict) -> list[str]:
-    have_conditional_blocks = True
-    while have_conditional_blocks:
+def conditional_compiled_text(lines: list[str], symbols: dict) -> list[str]:
+    while True:
         start, end = get_block_bounds(lines)    # find the boundaries of a conditional block
+
+        read_macros_defines(lines[0:start], symbols)
         if start == end:
-            have_conditional_blocks = False
+            break
 
-        branch = solve_block(lines[start:end])  # solve block (returns correct branch)
-        lines[start:end] = branch               # replace all block to solution
+        branch = solve_block(lines[start:], symbols)  # solve block (returns correct branch)
+        lines[start:end+1] = branch               # replace all block to solution
     return lines
-#TODO: вместо реккурсивного или итеративного решения со стеком можно просто
-#TODO: смещать счетчил строк на начало выполненной ветви
 
-def delete_comments(path: str) -> int:
-    ...
+
+def conditional_compiling(_input: str, _output: str, symbols: dict) -> int:
+    try:
+        with open(_output, "r", encoding="utf-8") as f:
+            lines = f.readlines()
+            lines = conditional_compiled_text(lines, symbols)
+        with open(_output, "w", encoding="utf-8") as f:
+            f.writelines(lines)
+    except OSError as e:
+        print(str(e))
+    except int as code:
+        return code
+
+    return 0
+
+
+def delete_used_directives(path: str) -> int:
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            lines = f.readlines()
+
+        i = 0
+        while i < len(lines):
+            striped = lines[i].strip()
+            words = striped.split(' ')
+            if len(words) == 0:
+                continue
+            elif is_directive(words[0]):
+                lines.pop(i)
+                i = 0
+            else:
+                i += 1
+        with open(path, "w", encoding="utf-8") as f:
+            f.writelines(lines)
+    except OSError as e:
+        print(str(e))
+        return 1
+    except int as code:
+        return code
+
+    return 0
+
+#           vvv custom directives vvv
+
+def custom_preprocessing(path: str) -> int:
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            lines = f.readlines()
+        lines = follow_custom_directives(lines)
+        with open(path, "w", encoding="utf-8") as f:
+            f.writelines(lines)
+        return 0
+
+    except int as code:
+        return code
+    except OSError:
+        return -1
+
+
+def follow_custom_directives(lines: list[str]) -> list[str]:
+    lines = _repeat(lines)
+    lines = _invisible(lines)
+    lines = _debug_only(lines)
+    lines = _random(lines)
+    return lines
 
 
 def collect_includes(path: str, chain: list[str]) -> tuple[int, list[str]]:
@@ -162,7 +333,7 @@ def is_valid_config(config: dict) -> int:
     return 0
 
 
-def preprocess(config: dict) -> int:
+def preprocessing(config: dict) -> int:
     # noexcept(false)
 
     _input = config["-i"]
@@ -173,13 +344,20 @@ def preprocess(config: dict) -> int:
     if code != 0:
         return code
 
-    symbols = parser.init_symbol_table(_symbol_table)
-    with open(_output, "r", encoding="utf-8") as f:
-        lines = f.readlines()
-        lines = conditional_compile(lines, symbols)
-        if code != 0:
-            return code
-    with open(_output, "w", encoding="utf-8") as f:
-        f.writelines(lines)
+    symbols = init_symbol_table(_symbol_table)
+    code = conditional_compiling(_input, _output, symbols)
+    if code != 0:
+        return code
 
-    return 0    # <-- breaker for testing
+    code = custom_preprocessing(_output)
+    if code != 0:
+        return code
+
+    code = delete_used_directives(_output)  # it must be followed before expanding, it's safer this way
+    if code != 0:
+        return code
+
+    code = expand_macros(_output, symbols)
+    if code != 0:
+        return code
+    return code

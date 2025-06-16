@@ -119,7 +119,8 @@ def is_define_directive(directive : str) -> bool:
 
 def is_conditional_directive(directive: str) -> bool:
     return directive in {
-        MACRO_HANDLERS["if"],
+        MACRO_HANDLERS["ifdef"],
+        MACRO_HANDLERS["ifndef"],
         MACRO_HANDLERS["else"],
         MACRO_HANDLERS["elif"],
         MACRO_HANDLERS["endif"],

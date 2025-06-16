@@ -1,4 +1,9 @@
 ERROR_MANUALS = {
+    -2: {
+        "msg" : "undefined error",
+        "hint": "it may be Python error: TypeError, ValueError and so on...\n"
+                "advise to try debug"
+    },
     -1: {
         "msg": "parameters nave not given",
         "hint": "try to use CLI and read manuals"
@@ -34,9 +39,10 @@ ERROR_MANUALS = {
         "hint": "Check out how deep locate @include itself."
     },
     200 : {
-        "msg" : "invalid define directive's syntax.",
+        "msg" : "invalid directive's syntax.",
         "hint" : "for @define : @define 'name' 'value'\n"
-                 "for @undef - same"
+                 "for @undef - same and so on\n"
+                 "look at manuals"
     },
     201 : {
         "msg" : "undefined symbol directed as @undef parameter",
@@ -48,10 +54,15 @@ ERROR_MANUALS = {
     },
     203 : {
         "msg" : "missed directive of the end of the conditional block or branch",
-        "hint" : "for every open conditional block must be ended directive\n"
+        "hint" : "for every opening of conditional block must be end-directive\n"
                  "end conditional directives: @elif @endif @else ..."
     },
     204 : {
+        "msg" : "missed directive of the start of the conditional block or branch",
+        "hint" : "for every closing of conditional block must be start-directive\n"
+                 "start conditional directives: @ifdef, @ifndef"
+    },
+    205 : {
         "msg" : "cannot parse conditional block",
         "hint" : "check directives syntax in manuals"
     }

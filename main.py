@@ -4,7 +4,7 @@ import parser
 import preprocess
 from common import ERROR_MANUALS
 
-norm_command = ["-i", "input.txt", "-o", "output", "-v", "-s", "symbols"]
+norm_command = ["-i", "input.txt", "-o", "output.txt", "-v", "-s", "symbols"]
 
 def main():
 
@@ -25,8 +25,7 @@ def main():
     triggers = preprocess.init_triggers(config)
     verbose_o = triggers["-v"]
     if verbose_o:
-        print("\ncommand-line parsing results:")
-        print(state)
+        print(f"\ncommand-line parsing results: {state}")
         print(config)
 
     _input = config["-i"]
@@ -36,9 +35,11 @@ def main():
         config["-s"] = ""   #invalid path -> empty table
 
     try:
-        res = preprocess.preprocess(config)
+        res = preprocess.preprocessing(config)
     except int as code:
         res = code
+    except TypeError:
+        res = -2
 
     print(f"\nexit code : {res}")
     if verbose_o:
