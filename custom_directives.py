@@ -5,8 +5,11 @@ import re
 def _debug_only(lines: list[str]) -> list[str]:
     new_lines = []
     for line in lines:
-        if CUSTOM_DIRECTIVES["debug_only"] in line:
-            indent = len(line) - len(line.lstrip())
+        stripped = line.lstrip()
+        indent = len(line) - len(stripped)
+        words = stripped.split(maxsplit=1)
+
+        if words and words[0] == CUSTOM_DIRECTIVES["debug_only"]:
             modified_line = ' ' * indent + "if __debug__:\n"
             new_lines.append(modified_line)
         else:
@@ -53,7 +56,36 @@ def _random(lines: list[str]) -> list[str]:
 
 
 def _mirror(lines: list[str]) -> list[str]:
-    ...
+    import ast, re
+
+    literal_pattern = re.compile(r'(\[.*?\]|"(?:[^"\\]|\\.)*"|\'(?:[^\'\\]|\\.)*\')')
+
+    i = 0
+    while i < len(lines):
+        if i + 1 >= len(lines):
+            break
+
+        if lines[i].strip() == CUSTOM_DIRECTIVES["mirror"]:
+            line = lines[i + 1]
+
+            def replace_literal(m):
+                try:
+                    val = ast.literal_eval(m.group(0))
+                    if isinstance(val, str):
+                        return repr(val[::-1])
+                    elif isinstance(val, list):
+                        return repr(val[::-1])
+                except Exception:
+                    pass
+                return m.group(0)  # если не парсится — не меняем
+
+            new_line = literal_pattern.sub(replace_literal, line)
+            lines = lines[:i] + [new_line] + lines[i + 2:]
+            continue
+
+        i += 1
+
+    return lines
 
 
 def _repeat(lines: list[str]) -> list[str]:

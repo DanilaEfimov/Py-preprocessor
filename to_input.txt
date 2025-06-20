@@ -4,7 +4,7 @@ by pseudo python directive
 @ifdef C
 C was defined (in included file)
 @endif
-@include output.txt
+@include main.py
 КОНФЕТЫ
 МОРОЖЕНЫЕ
 СМУРФИК

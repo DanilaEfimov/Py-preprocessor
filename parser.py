@@ -4,14 +4,16 @@
     -s @symbols_table_file
     -o @target_file
     -v @verbose output
+    -d @depth of directives including
 """
 
 from common import MACRO_HANDLERS
 
 """ vvv CLI interface flags and other definitions vvv """
-VOID_FLAGS = {"-v"}
-FLAGS_WITH_VALUES = {"-i", "-o", "-s"}
 
+VOID_FLAGS = {"-v"}
+FLAGS_WITH_VALUES = {"-i", "-o", "-s", "-d"}
+NUMERIC_FLAGS = {"-d"}
 
 def is_value(pattern: str) -> bool:
     return pattern is not None and not is_flag(pattern)
@@ -23,6 +25,41 @@ def is_flag(pattern : str) -> bool:
 
 def is_void_flag(flag: str) -> bool:
     return flag in VOID_FLAGS
+
+
+def is_num_flag(flag: str) -> bool:
+    return flag in NUMERIC_FLAGS
+
+
+def is_valid_void_value(flag: str, value) -> bool:
+    return value is True
+
+
+def is_valid_numeric_value(flag: str, value) -> bool:
+    # noexcept(false)
+    if flag == "-d":
+        return int(value) > 0
+    raise 106
+
+
+def init_triggers(config: dict) -> dict:
+    return {flag: config.get(flag, False) is True for flag in VOID_FLAGS}
+
+
+def is_valid_config(config: dict) -> int:
+    if "-i" not in config:
+        return 100   # missed -input argument
+
+    for flag, value in config.items():
+        if is_void_flag(flag):
+            if not is_valid_void_value(flag, value):
+                return 101   # invalid value for void flag
+        elif is_num_flag(flag):
+            if not is_valid_numeric_value(flag, value):
+                return 105
+        elif not is_value(value):
+                return 102   # invalid value for flag
+    return 0    # valid config
 
 
 def parse_main_input(argv) -> dict:
@@ -78,38 +115,6 @@ def init_symbol_table(path: str) -> dict:
 
 """ vvv preprocessor's parse utils vvv """
 
-def parse_conditional_blocks(path: str) -> list[str]:
-    ...
-
-
-def is_directive(line: str) -> bool:
-    return line in MACRO_HANDLERS
-
-
-def parse_define_directive(line: str) -> tuple[int, str, str, str]:
-    line = line.strip()
-    define = MACRO_HANDLERS["define"]
-    undef = MACRO_HANDLERS["undef"]
-
-    if line.startswith(define):
-        parts = line.split(maxsplit=2)
-        if len(parts) < 2:
-            return 200, define, "", ""
-        symbol = parts[1]
-        value = parts[2] if len(parts) > 2 else ""
-        return 0, define, symbol, value
-
-    elif line.startswith(undef):
-        parts = line.split(maxsplit=2)
-        if len(parts) < 2:
-            return 200, undef, "", ""
-        symbol = parts[1]
-        return 0, undef, symbol, ""
-
-    else:
-        return 200, "", "", ""
-
-
 def is_define_directive(directive : str) -> bool:
     return directive in {
         MACRO_HANDLERS["define"],
@@ -123,13 +128,7 @@ def is_conditional_directive(directive: str) -> bool:
         MACRO_HANDLERS["ifndef"],
         MACRO_HANDLERS["else"],
         MACRO_HANDLERS["elif"],
-        MACRO_HANDLERS["endif"],
     }
-
-
-def directive_in_line(line: str) -> bool:
-    stripped = line.strip().split(maxsplit=1)
-    return stripped and stripped[0] in MACRO_HANDLERS.values()
 
 
 def parse_include_parameter(directive: str):

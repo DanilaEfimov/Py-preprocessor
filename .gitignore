@@ -4,3 +4,4 @@ __pycache__/
 .env
 input.txt
 output.txt
+to_input.txt

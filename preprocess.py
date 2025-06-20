@@ -1,7 +1,7 @@
 import re
 
 from parser import is_void_flag, is_value, parse_include_parameter, is_define_directive, is_conditional_directive, init_symbol_table, VOID_FLAGS
-from common import ERROR_MANUALS, MACRO_HANDLERS
+from common import ERROR_MANUALS, MACRO_HANDLERS, ErrorCode
 from custom_directives import _debug_only, _mirror, _random, _repeat, _invisible
 
 
@@ -16,6 +16,19 @@ def is_opening_of_block(line: str) -> bool:
     }
 
 
+def is_alternative(line: str) -> bool:
+    return line in {
+        MACRO_HANDLERS["elif"],
+        MACRO_HANDLERS["else"]
+    }
+
+
+def is_closing_of_block(line: str) -> bool:
+    return line in {
+        MACRO_HANDLERS["endif"]
+    }
+
+
 def is_branch_terminator(line: str) -> bool:
     return line in {
         MACRO_HANDLERS["endif"],
@@ -25,7 +38,7 @@ def is_branch_terminator(line: str) -> bool:
 
 
 def is_defined_symbol(symbol: str, symbols: dict) -> bool:
-    return symbol in symbols
+    return symbol in symbols.keys()
 
 
 def is_open_block_directive(line: str) -> bool:
@@ -47,39 +60,39 @@ def solve_condition_directive(directive: str, symbols: dict) -> bool:
     words = directive.strip().split(' ')
     if words[0] == MACRO_HANDLERS["ifdef"] or words[0] == MACRO_HANDLERS["elif"]:
         if len(words) < 2:
-            raise 200
+            raise ErrorCode(200)
         symbol = words[1]
         return is_defined_symbol(symbol, symbols)
 
     elif words[0] == MACRO_HANDLERS["ifndef"]:
         if len(words) < 2:
-            raise 200
+            raise ErrorCode(200)
         symbol = words[1]
         return not is_defined_symbol(symbol, symbols)
 
     elif words[0] == MACRO_HANDLERS["else"]:
         return True
 
+    raise ErrorCode(202)   # undefined directive
+
 
 def solve_define_macros(directive: str, symbols: dict) -> None:
     words = directive.strip().split(' ')
     if words[0] == MACRO_HANDLERS["define"]:
         if len(words) < 3:
-            raise 200
+            raise ErrorCode(200)   # invalid syntax
         var = words[1]
         val = words[2]
         symbols[var] = val
     elif words[0] == MACRO_HANDLERS["undef"]:
         if len(words) < 2:
-            raise 200   # invalid syntax
+            raise ErrorCode(200)   # invalid syntax
         symbol = words[1]
         if is_defined_symbol(symbol, symbols):
             symbols.pop(symbol)
-        else:
-            raise 201   # undefined symbol under cursor
 
 
-def expand_macros(path: str, symbols: dict) -> int:
+def expand_macros(path: str, symbols: dict) -> None:
     try:
         with open(path, "r", encoding="utf-8") as f:
             lines = f.readlines()
@@ -92,12 +105,9 @@ def expand_macros(path: str, symbols: dict) -> int:
 
         with open(path, "w", encoding="utf-8") as f:
             f.writelines(expanded_lines)
-        return 0
 
     except OSError:
-        return 1
-    except int as code:
-        return code
+        raise ErrorCode(1)
 
 
 def read_macros_defines(lines: list[str], symbols: dict) -> None:
@@ -111,20 +121,27 @@ def get_conditional_branch(lines: list[str]) -> list[str]:
     end = 0
     flag = False
     staples = 1
-    for i in range(1,len(lines)):
+    for i in range(1, len(lines)):
         line = lines[i].strip()
+        if not line:
+            continue
         words = line.split(' ')
-        if is_branch_terminator(words[0]):
+        head = words[0]
+
+        if is_alternative(head):
+            continue
+
+        if is_branch_terminator(head):
             staples -= 1
             if staples == 0:
                 end = i
                 flag = True
                 break
-        elif is_open_block_directive(words[0]):
+        elif is_open_block_directive(head):
             staples += 1
 
     if not flag:
-        raise 203
+        raise ErrorCode(203)   # missed end directive of conditional block
 
     return lines[1:end]
 
@@ -143,7 +160,7 @@ def get_block_bounds(lines: list[str]) -> tuple[int, int]:
             flag = True
             break
         elif is_branch_terminator(words[0]):
-            raise 204
+            raise ErrorCode(204)   # missed start directive of conditional block
 
     if not flag:
         return 0, 0
@@ -161,7 +178,7 @@ def get_block_bounds(lines: list[str]) -> tuple[int, int]:
                 break
 
     if end == 0:
-        raise 203
+        raise ErrorCode(203)   # missed end directive of conditional block
 
     return start, end
 
@@ -197,7 +214,7 @@ def conditional_compiled_text(lines: list[str], symbols: dict) -> list[str]:
     return lines
 
 
-def conditional_compiling(_input: str, _output: str, symbols: dict) -> int:
+def conditional_compiling(_input: str, _output: str, symbols: dict) -> None:
     try:
         with open(_output, "r", encoding="utf-8") as f:
             lines = f.readlines()
@@ -206,13 +223,10 @@ def conditional_compiling(_input: str, _output: str, symbols: dict) -> int:
             f.writelines(lines)
     except OSError as e:
         print(str(e))
-    except int as code:
-        return code
-
-    return 0
+        raise ErrorCode(1) # cannot open file
 
 
-def delete_used_directives(path: str) -> int:
+def delete_used_directives(path: str) -> None:
     try:
         with open(path, "r", encoding="utf-8") as f:
             lines = f.readlines()
@@ -232,38 +246,32 @@ def delete_used_directives(path: str) -> int:
             f.writelines(lines)
     except OSError as e:
         print(str(e))
-        return 1
-    except int as code:
-        return code
-
-    return 0
+        raise ErrorCode(1) # cannot open file
 
 #           vvv custom directives vvv
 
-def custom_preprocessing(path: str) -> int:
+def custom_preprocessing(path: str) -> None:
     try:
         with open(path, "r", encoding="utf-8") as f:
             lines = f.readlines()
         lines = follow_custom_directives(lines)
         with open(path, "w", encoding="utf-8") as f:
             f.writelines(lines)
-        return 0
-
-    except int as code:
-        return code
     except OSError:
-        return -1
+        raise ErrorCode(-1)
 
 
 def follow_custom_directives(lines: list[str]) -> list[str]:
-    lines = _repeat(lines)
-    lines = _invisible(lines)
-    lines = _debug_only(lines)
-    lines = _random(lines)
+    # here we can shake order and due to modify priority
+    lines = _repeat(lines)      # 1-st priority
+    lines = _random(lines)      # 2-nd priority
+    lines = _debug_only(lines)  # 3-st priority
+    lines = _mirror(lines)      # 4-th priority
+    lines = _invisible(lines)   # 5-th priority
     return lines
 
 
-def collect_includes(path: str, chain: list[str]) -> tuple[int, list[str]]:
+def collect_includes(path: str, chain: list[str]) -> list[str]:
     include_macro = MACRO_HANDLERS["include"]
 
     try:
@@ -275,35 +283,30 @@ def collect_includes(path: str, chain: list[str]) -> tuple[int, list[str]]:
                 if include_macro in line:
                     include_path = parse_include_parameter(line)
                     if include_path in chain:
-                        return 104, []
+                        raise ErrorCode(104)   # self-reference in path-chain
                     else:
-                        code, included_lines = collect_includes(include_path, chain + [include_path])
-
-                        if code != 0:
-                            return code, []
+                        included_lines = collect_includes(include_path, chain + [include_path])
                         result.extend(included_lines)
                 else:
                     result.append(line)
 
-            return 0, result
+            return result
 
     except OSError as e:
-        return 103, [str(e)]
+        raise ErrorCode(103)   # invalid path as @include parameter
 
 
-def include_files(_input: str, _output: str) -> int:
+def include_files(_input: str, _output: str) -> None:
     try:
         with open(_input, "r", encoding="utf-8") as f:
-            code, lines = collect_includes(_input, [])
-            if code != 0:
-                return code
+            lines = collect_includes(_input, [])
 
         with open(_output, "w", encoding="utf-8") as f:
             f.writelines(lines)
-        return 0
 
     except OSError:
-        return 103
+        raise ErrorCode(103)   # invalid path as @include parameter
+
 
 def report_error(code: int):
     err = ERROR_MANUALS.get(code)
@@ -314,50 +317,21 @@ def report_error(code: int):
         print(f"Unknown error code: {code}")
 
 
-def init_triggers(config: dict) -> dict:
-    return {flag: config.get(flag, False) is True for flag in VOID_FLAGS}
-
-
-def is_valid_config(config: dict) -> int:
-    if "-i" not in config:
-        return 100
-
-    for flag, value in config.items():
-        if is_void_flag(flag):
-            if value is not True:
-                return 101
-        else:
-            if not is_value(value):
-                return 102
-
-    return 0
-
-
-def preprocessing(config: dict) -> int:
+def preprocessing(config: dict) -> None:
     # noexcept(false)
 
-    _input = config["-i"]
-    _output = config["-o"]
-    _symbol_table = config["-s"]
+    _input = str(config["-i"])
+    _output = str(config["-o"])
+    _symbol_table = str(config["-s"])
+    _depth = int(config["-d"])
 
-    code = include_files(_input, _output)
-    if code != 0:
-        return code
+    include_files(_input, _output)
 
     symbols = init_symbol_table(_symbol_table)
-    code = conditional_compiling(_input, _output, symbols)
-    if code != 0:
-        return code
+    conditional_compiling(_input, _output, symbols)
 
-    code = custom_preprocessing(_output)
-    if code != 0:
-        return code
+    for i in range(_depth):  # DEPTH is the level of directive's inclusive depth
+        expand_macros(_output, symbols)
+        custom_preprocessing(_output)
 
-    code = delete_used_directives(_output)  # it must be followed before expanding, it's safer this way
-    if code != 0:
-        return code
-
-    code = expand_macros(_output, symbols)
-    if code != 0:
-        return code
-    return code
+    delete_used_directives(_output)  # it must be followed before expanding, it's safer this way

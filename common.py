@@ -1,6 +1,13 @@
+class ErrorCode(Exception):
+    def __init__(self, code: int):
+        self.code = code
+        super().__init__(f"Error code: {code}")
+
+DEPTH = 16
+
 ERROR_MANUALS = {
     -2: {
-        "msg" : "undefined error",
+        "msg" : "undefined error, external error",
         "hint": "it may be Python error: TypeError, ValueError and so on...\n"
                 "advise to try debug"
     },
@@ -9,8 +16,8 @@ ERROR_MANUALS = {
         "hint": "try to use CLI and read manuals"
     },
     0: {
-        "msg": "all is done",
-        "hint": "no hints, don't worry"
+        "msg": "no errors, all done correctly",
+        "hint": "if You want learn more -> look in source"
     },
     1 : {
         "msg" : "failed to open file, or file not exist.",
@@ -37,6 +44,14 @@ ERROR_MANUALS = {
     104 : {
         "msg": "self-reference in included file's chain :: collect_includes(...)",
         "hint": "Check out how deep locate @include itself."
+    },
+    105 : {
+        "msg": "invalid value for numeric flag",
+        "hint": "some numeric flags can't have negative or null value"
+    },
+    106 : {
+        "msg": "undefined flag in config",
+        "hint": "check Your input, and read docs"
     },
     200 : {
         "msg" : "invalid directive's syntax.",
