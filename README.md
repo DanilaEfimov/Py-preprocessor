@@ -27,7 +27,7 @@ The project aims to enhance code expressiveness and simplify writing repetitive 
 Run the preprocessor from the command line with required parameters:
 
 ```bash
-python main.py -i sample/script.py -o sample/target.py -v -s sample/symbols.ini -d 10
+preprocessor.bat -i sample/script.py -o sample/target.py -v -s sample/symbols.ini -d 10
 ```
 
 Where:
