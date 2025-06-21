@@ -1,46 +1,43 @@
 
 ---
 
-# Py-preprocessor
+# Py-preprocessor ⚙️
 
-**Py-preprocessor** is an experimental preprocessor for the hypothetical Py++ language that adds powerful meta-directives and metaprogramming capabilities at compile time.
-The project aims to enhance code expressiveness and simplify writing repetitive and conditional constructs.
-
----
-
-## Features
-
-* **@repeat(n)** — repeats the following code block `n` times at compile time
-* **@mirror** — generates a mirrored (reversed) version of a string or list of literals
-* **@random(\[...])** — selects one statement randomly from the provided list during compilation
-* **@invisible** — hides code from introspection tools and compiler output
-* **@debug\_only** — includes code only when compiling in debug mode
-* **Conditional compilation:** `@if`, `@elif`, `@else`, `@endif` — allows writing code conditionally compiled based on compile-time expressions
-* **@include** — inserts external source files inline during compilation, supports nested includes and prevents circular dependencies
+**Py-preprocessor** is an experimental compile-time preprocessor for the hypothetical Py++ language, designed to enhance code expressiveness through meta-directives and conditional compilation.
 
 ---
 
-## Quick Start
+## Features ✨
 
-### Running
+* `@repeat(n)` — repeats the following code block `n` times at compile time
+* `@mirror` — generates a reversed version of a string or literal list
+* `@random([...])` — selects a single statement randomly from a list at compile time
+* `@invisible` — hides code from introspection and compiler output
+* `@debug_only` — includes code only when compiled in debug mode
+* Conditional compilation directives: `@if`, `@elif`, `@else`, `@endif`
+* `@include` — inserts external source files inline, supports nested includes and detects circular dependencies
 
-Run the preprocessor from the command line with required parameters:
+---
+
+## Usage ▶️
+
+Run the preprocessor via command line with parameters:
 
 ```bash
 preprocessor.bat -i sample/script.py -o sample/target.py -v -s sample/symbols.ini -d 10
 ```
 
-Where:
+Parameters:
 
 * `-i` — input Py++ source file
-* `-o` — output file for the preprocessed code (if omitted, input file is overwritten)
+* `-o` — output file for preprocessed code (defaults to input file if omitted)
 * `-v` — verbose output mode
 * `-s` — path to symbols file
 * `-d` — maximum include depth
 
 ---
 
-## Directive Examples
+## Example Directives 💡
 
 ```py++
 @repeat(3)
@@ -66,23 +63,21 @@ print("Only in debug mode")
 
 ---
 
-## Error Handling
+## Error Codes ⚠️
 
-The preprocessor provides a detailed error code reference and hints to help quickly diagnose issues, such as:
-
-* `-1`: missing parameters
-* `1`: file not found or failed to open
-* `103`: error opening file specified in `@include`
-* `204`: missing directive at start of conditional block
+* `-1` — missing parameters
+* `1` — file not found or cannot be opened
+* `103` — failed to open file specified in `@include`
+* `204` — missing start directive for conditional block
 
 ---
 
-## Project Structure
+## Project Structure 📂
 
-* `main.py` — entry point and main processing loop
-* `parser.py` — command line argument parsing and validation
-* `preprocess.py` — main preprocessing logic
-* `common.py` — common structures, error codes, and constants
+* `main.py` — entry point and main logic
+* `parser.py` — command line parsing and validation
+* `preprocess.py` — preprocessing engine
+* `common.py` — common constants and error codes
 
 ---
 
@@ -92,9 +87,8 @@ MIT License © 2025 Danila Efimov
 
 ---
 
-## Contacts
+## Contact
 
-* GitHub: [https://github.com/DanilaEfimov/Py-preprocessor](https://github.com/DanilaEfimov/Py-preprocessor)
-* Author: Danila Efimov
+GitHub: [https://github.com/DanilaEfimov/Py-preprocessor](https://github.com/DanilaEfimov/Py-preprocessor)
 
 ---
