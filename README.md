@@ -57,7 +57,7 @@ _internal_boot()
 @debug_only
 print("Debug mode enabled")
 
-@if DEBUG
+@ifdef DEBUG
 print("Only in debug mode")
 @endif
 
