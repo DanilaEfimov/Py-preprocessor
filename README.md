@@ -24,7 +24,10 @@
 Run the preprocessor via command line with parameters:
 
 ```bash
+git clone https://github.com/DanilaEfimov/Py-preprocessor.git
+cd Py-preprocessor
 preprocessor.bat -i sample/script.py -o sample/target.py -v -s sample/symbols.ini -d 10
+
 ```
 
 Parameters:
